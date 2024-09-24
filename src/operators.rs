@@ -71,25 +71,74 @@ pub fn masked_softmax(y: &mut Tensor<f32>) {
 }
 
 pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: f32) {
-    todo!("实现 rms_norm，计算前做一些必要的检查会帮助你后续调试")
+    let num_rows = x.shape()[0];
+    let num_cols = x.shape()[1];
+
+    assert!(num_rows == y.shape()[0]);
+    assert!(num_cols == y.shape()[1]);
+
+    let _x = x.data();
+    let _w = w.data();
+    let _y = unsafe { y.data_mut() };
+
+    for i in 0..num_rows {
+        let x_i = &_x[(i*num_cols)..((i+1)*num_cols)];
+        let mut denominator: f32 = 0.0;
+        for j in 0..num_cols {
+            denominator += x_i[j] * x_i[j];
+        }
+        denominator = f32::sqrt(denominator / num_cols as f32 + epsilon);
+        for j in 0..num_cols {
+            _y[i * num_cols + j] = (_w[j] * x_i[j]) / denominator;
+        }
+    }
+
+    // todo!("实现 rms_norm，计算前做一些必要的检查会帮助你后续调试")
 }
 
 // y = sigmoid(x) * x * y
 // hint: this is an element-wise operation
 pub fn silu(y: &mut Tensor<f32>, x: &Tensor<f32>) {
-    // let len = y.size();
-    // assert!(len == x.size());
+    let len = y.size();
+    assert!(len == x.size());
 
-    // let _y = unsafe { y.data_mut() };
-    // let _x = x.data();
+    let _y = unsafe { y.data_mut() };
+    let _x = x.data();
+    
+    let e:f32 = std::f32::consts::E;
+    let sig_x: Vec<f32> = _x.iter().map(|&t| {t/(1.0 + e.powf(-t))}).collect();
 
-    todo!("实现 silu，这里给了一些前期准备工作的提示，你可以参考")
+    for i in 0..len {
+        _y[i] *= sig_x[i];
+    }
 }
 
 // C = beta * C + alpha * A @ B^T
 // hint: You don't need to do an explicit transpose of B
 pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor<f32>, alpha: f32) {
-    todo!("实现 matmul_transb，计算前做一些必要的检查会帮助你后续调试");
+    let m = c.shape()[0];
+    let n = c.shape()[1];
+    let k = a.shape()[1];
+    
+    let _c = unsafe { c.data_mut() };
+    let _a = a.data();
+    let _b = b.data();
+
+    for i in 0..m {
+        for j in 0..n {
+            _c[i * n + j] *= beta;
+        }
+    }
+    
+    for i in 0..m {
+        for j in 0..n {
+            for d in 0..k {
+                _c[i * n + j] += alpha * _a[i * k + d] * _b[j * k + d];
+            }
+        }
+    }
+
+    // todo!("实现 matmul_transb，计算前做一些必要的检查会帮助你后续调试");
 }
 
 // Dot product of two tensors (treated as vectors)
